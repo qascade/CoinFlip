@@ -1,11 +1,10 @@
 pragma solidity ^0.8.10;
 
 contract CoinFlip{
-    //Bet options 
-    enum BetOption {Head,Tail}
+
     /*****************VRF DECLARATION**************/
     
-    function vrf() public view returns (uint result) {
+    function vrf() public view returns (bytes32 result) {
     uint[1] memory bn;
     bn[0] = block.number;
     assembly {
@@ -26,7 +25,7 @@ contract CoinFlip{
     //Session Id
     uint private SessionId; 
     
-    constructor() public {
+    constructor(){
         owner = msg.sender;
     }
     //All the modifiers 
@@ -38,7 +37,8 @@ contract CoinFlip{
         require(msg.sender == owner);
         _;
     }
-     
+    //Bet Options
+    enum BetOption {HEAD,TAIL}
     //To define a session for a single bet placed by player 
     struct Bet{
         address playerAdd; //address to identify the better
@@ -53,41 +53,41 @@ contract CoinFlip{
     //player place a bet on an option
     function PlaceBet(uint _option) external payable notOwner{
         require(msg.value<=100);
-        require(option <= uint(BetOption.TAIL));
-        Bet _newBet = Bet(msg.sender, msg.value,_option);
+        require(_option >=0 && _option<=1);
+        BetOption temp;
+        if(_option == 0) temp = BetOption.HEAD;
+        else temp = BetOption.TAIL; 
+        Bet memory _newBet = Bet(msg.sender, msg.value,temp);
         BetsInTheSession[SessionId] = _newBet; 
-        emit NewBetPlaced(SessionId, msg.sender, msg.value, BetOption(_option)); 
+        OnGoing = true;
+        emit NewBetPlaced(SessionId, msg.sender, msg.value, temp); 
 
     }
-    // Draw done inside the contract to be used to declare whether player wins or not. 
+    // Function to get a draw inside the contract. This draw will be used to declare the winner. 
     function GenerateDraw() private view Owner returns(BetOption) {
-        return (BetOption(vrf()%2)); 
+        return (BetOption(uint(vrf())%2)); 
     }
-    // function to get balance of a given address
-    function getBalance(address _user) public view returns (uint){
-        returns (_user.balance); 
+    function getBalance(address _user) private view returns (uint){
+        return (_user.balance); 
     }
-    //Function to do payment to a given address
     function pay(address payable _playerAddr, uint _reward) public payable{
-        (bool sent, bytes memory data) = _playerAddr.call{value: _reward}("");
+        (bool sent,) = _playerAddr.call{value: _reward}("");
         require(sent,"Error while Paying"); 
     }
-    //Function to check whether player wins the bet or not and then pay reward/deduct balance accordingly. 
-    function rewardBets() private Owner{
+    function rewardBets() public payable Owner{
         BetOption draw = GenerateDraw(); 
-        Bet CurrBet = BetsInTheSession[SessionId]; 
-        if(CurrBet.option == draw) // If Player wins
-            giveReward(msg.sender, CurrBet.BetAmount); 
+        Bet memory CurrBet = BetsInTheSession[SessionId]; 
+        if(CurrBet.option == draw)
+            giveReward(payable(msg.sender), CurrBet.BetAmount); 
         else
             deductReward(CurrBet.BetAmount);
     }
-    function giveReward(address payable player, uint _BetAmount){
+    function giveReward(address payable player, uint _BetAmount) private Owner{
         uint CurrBalance = getBalance(player);
         uint reward = 2*_BetAmount; 
-        pay(player,CurrBet+reward); 
+        pay(player,CurrBalance+reward); 
     }
-    // To deduct the betAmount from Player if player loses and add the amount to the balance of the contract. 
-    function deductReward(uint _BetAmount){
-        pay(owner, _BetAmount);
+    function deductReward(uint _BetAmount) private Owner{
+        pay(payable(owner), _BetAmount);
     }
 }
