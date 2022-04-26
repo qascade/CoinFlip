@@ -1,7 +1,8 @@
-pragma solidity 0.8.10 
-using SafeMath for uint;
+pragma solidity ^0.8.10;
+
 contract CoinFlip{
-    
+    //Bet options 
+    enum BetOption {Head,Tail}
     /*****************VRF DECLARATION**************/
     
     function vrf() public view returns (uint result) {
@@ -37,8 +38,7 @@ contract CoinFlip{
         require(msg.sender == owner);
         _;
     }
-    //Bet options 
-    enum BetOption{Head,Tail}; 
+     
     //To define a session for a single bet placed by player 
     struct BetSession{
         uint duration;
@@ -65,10 +65,10 @@ contract CoinFlip{
     }
     
     function GenerateDraw() private view Owner returns(BetOption) {
-        returns(BetOption(vrf()%2)); 
+        return (BetOption(vrf()%2)); 
     }
     function getBalance() public view returns (uint){
-        returns address(this).balance; 
+        returns (uint)(address(this).balance); 
     }
     function pay(address payable _playerAddr, uint _reward) public payable{
         (bool sent, bytes memory data) = _playerAddr.call{value: _reward}("");
