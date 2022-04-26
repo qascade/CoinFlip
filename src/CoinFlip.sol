@@ -59,21 +59,24 @@ contract CoinFlip{
         emit NewBetPlaced(SessionId, msg.sender, msg.value, BetOption(_option)); 
 
     }
-    
+    // Draw done inside the contract to be used to declare whether player wins or not. 
     function GenerateDraw() private view Owner returns(BetOption) {
         return (BetOption(vrf()%2)); 
     }
+    // function to get balance of a given address
     function getBalance(address _user) public view returns (uint){
         returns (_user.balance); 
     }
+    //Function to do payment to a given address
     function pay(address payable _playerAddr, uint _reward) public payable{
         (bool sent, bytes memory data) = _playerAddr.call{value: _reward}("");
         require(sent,"Error while Paying"); 
     }
+    //Function to check whether player wins the bet or not and then pay reward/deduct balance accordingly. 
     function rewardBets() private Owner{
         BetOption draw = GenerateDraw(); 
         Bet CurrBet = BetsInTheSession[SessionId]; 
-        if(CurrBet.option == draw)
+        if(CurrBet.option == draw) // If Player wins
             giveReward(msg.sender, CurrBet.BetAmount); 
         else
             deductReward(CurrBet.BetAmount);
@@ -83,6 +86,7 @@ contract CoinFlip{
         uint reward = 2*_BetAmount; 
         pay(player,CurrBet+reward); 
     }
+    // To deduct the betAmount from Player if player loses and add the amount to the balance of the contract. 
     function deductReward(uint _BetAmount){
         pay(owner, _BetAmount);
     }
