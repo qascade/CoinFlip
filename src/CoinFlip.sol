@@ -40,10 +40,6 @@ contract CoinFlip{
     }
      
     //To define a session for a single bet placed by player 
-    struct BetSession{
-        uint duration;
-        uint openTimestamp;
-    }
     struct Bet{
         address playerAdd; //address to identify the better
         uint BetAmount; 
@@ -67,8 +63,8 @@ contract CoinFlip{
     function GenerateDraw() private view Owner returns(BetOption) {
         return (BetOption(vrf()%2)); 
     }
-    function getBalance() public view returns (uint){
-        returns (uint)(address(this).balance); 
+    function getBalance(address _user) public view returns (uint){
+        returns (_user.balance); 
     }
     function pay(address payable _playerAddr, uint _reward) public payable{
         (bool sent, bytes memory data) = _playerAddr.call{value: _reward}("");
@@ -78,12 +74,12 @@ contract CoinFlip{
         BetOption draw = GenerateDraw(); 
         Bet CurrBet = BetsInTheSession[SessionId]; 
         if(CurrBet.option == draw)
-            giveReward(address(this), CurrBet.BetAmount); 
+            giveReward(msg.sender, CurrBet.BetAmount); 
         else
             deductReward(CurrBet.BetAmount);
     }
     function giveReward(address payable player, uint _BetAmount){
-        uint CurrBalance = getBalance();
+        uint CurrBalance = getBalance(player);
         uint reward = 2*_BetAmount; 
         pay(player,CurrBet+reward); 
     }
